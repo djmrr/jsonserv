@@ -1,9 +1,12 @@
 package jsonserv
 
 import (
+	"bytes"
+	"compress/gzip"
 	"errors"
 	"io/ioutil"
 	"log"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -93,7 +96,6 @@ func TestStaticValueMiddleware_RequestVar_Is_Set(t *testing.T) {
 	m.Egress(nil, req, res)
 }
 
-
 func TestGzipMiddleware_Wraps_Gzip_Accepted_ResponsesContentTypeIsSet(t *testing.T) {
 	gz := NewGzipMiddleware()
 	req := newRequest(mockRequest())
@@ -108,7 +110,6 @@ func TestGzipMiddleware_Wraps_Gzip_Accepted_ResponsesContentTypeIsSet(t *testing
 
 }
 
-
 func TestGzipMiddleware_Doesnt_wrap_non_Gzip_Accepted_ResponsesContentTypeIsSet(t *testing.T) {
 	gz := NewGzipMiddleware()
 	req := newRequest(mockRequest())
@@ -119,6 +120,45 @@ func TestGzipMiddleware_Doesnt_wrap_non_Gzip_Accepted_ResponsesContentTypeIsSet(
 
 	if _, ok := res.Writer.(*gzipWriter); ok {
 		t.Fatal("Writer wrapped")
+	}
+
+}
+
+func TestGzipMiddleware_CompressesCorrectly(t *testing.T) {
+
+	contents := []byte("hello, world!")
+
+	compress := func(data []byte) []byte {
+		buff := &bytes.Buffer{}
+		compressor := gzip.NewWriter(buff)
+		n, err := compressor.Write(data)
+		if err != nil {
+			t.Fatalf("Error compressing data: %v", err)
+		}
+		if n != len(data) {
+			t.Fatal("Not all bytes compressed")
+		}
+		return buff.Bytes()
+	}
+
+	writer := mockWriter()
+	gz := NewGzipMiddleware()
+	req := newRequest(mockRequest())
+	res := newResponse(writer)
+
+	req.Header().Add(headerAcceptEncoding, headerAcceptEncodingGzip)
+	gz.Ingress(nil, req, res)
+
+	res.Writer.Write(contents)
+
+	compressed := writer.Buffer.Bytes()
+	expected := compress(contents)
+
+	if reflect.DeepEqual(compressed, contents) {
+		t.Fatal("Contents not compressed")
+	}
+	if !reflect.DeepEqual(compressed, expected) {
+		t.Fatal("Unexpected gzipped content")
 	}
 
 }

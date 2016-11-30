@@ -57,7 +57,7 @@ func (w *mockResponseWriter) WriteHeader(code int) {
 func (w *mockResponseWriter) Close() {
 }
 
-func mockWriter() ResponseWriter {
+func mockWriter() *mockResponseWriter {
 	return &mockResponseWriter{
 		Code:   0,
 		header: make(http.Header),
