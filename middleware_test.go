@@ -207,6 +207,7 @@ func TestGzipMiddleware_RoundTrip(t *testing.T) {
 	gz.Egress(nil, req, res)
 
 	res.Writer.Write(contents)
+	// Close usually happens during response but we need to force it here to check output
 	res.Writer.(*gzipWriter).Close()
 
 	results := writer.Buffer.Bytes()
