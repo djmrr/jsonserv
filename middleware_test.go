@@ -124,41 +124,102 @@ func TestGzipMiddleware_Doesnt_wrap_non_Gzip_Accepted_ResponsesContentTypeIsSet(
 
 }
 
-func TestGzipMiddleware_CompressesCorrectly(t *testing.T) {
+func compress(b []byte) ([]byte, error) {
+	buff := &bytes.Buffer{}
+	gz := gzip.NewWriter(buff)
+	n, err := gz.Write(b)
+	if err != nil {
+		return nil, err
+	}
+	if err = gz.Close(); err != nil {
+		return nil, err
+	}
+	if n != len(b) {
+		return nil, errors.New("Not all bytes compressed")
+	}
+	return buff.Bytes(), nil
+}
+
+func decompress(b []byte) ([]byte, error) {
+	buff := bytes.NewReader(b)
+	gz, err := gzip.NewReader(buff)
+	if err != nil {
+		return nil, err
+	}
+	defer gz.Close()
+	return ioutil.ReadAll(gz)
+}
+
+func TestGzipWriter_CompressesCorrectly(t *testing.T) {
 
 	contents := []byte("hello, world!")
+	expected, err := compress(contents)
+	if err != nil {
+		t.Fatalf("Error compressing contents: %v", err)
+	}
 
-	compress := func(data []byte) []byte {
-		buff := &bytes.Buffer{}
-		compressor := gzip.NewWriter(buff)
-		n, err := compressor.Write(data)
-		if err != nil {
-			t.Fatalf("Error compressing data: %v", err)
-		}
-		if n != len(data) {
-			t.Fatal("Not all bytes compressed")
-		}
-		return buff.Bytes()
+	writer := mockWriter()
+	gzWriter := &gzipWriter{
+		writer: writer,
+		gz:     gzip.NewWriter(writer),
+	}
+
+	n, err := gzWriter.Write(contents)
+	gzWriter.Close()
+	if err != nil {
+		t.Fatalf("Unable to compress contents: %v", err)
+	}
+	if n != len(contents) {
+		t.Fatalf("Unable to write all contents: %d/%d", n, len(contents))
+	}
+
+	results := writer.Buffer.Bytes()
+	if reflect.DeepEqual(results, contents) {
+		t.Fatal("Contents not compressed")
+	}
+	if !reflect.DeepEqual(results, expected) {
+		t.Fatal("Unexpected gzipped content")
+	}
+
+	decompressed, err := decompress(results)
+	if err != nil {
+		t.Fatalf("Error decompressing results: %v", err)
+	}
+	if !reflect.DeepEqual(contents, decompressed) {
+		t.Fatal("Contents did not decompress to original")
+	}
+
+}
+
+func TestGzipMiddleware_RoundTrip(t *testing.T) {
+	contents := []byte("hello, world!")
+	expected, err := compress(contents)
+	if err != nil {
+		t.Fatalf("Error compressing contents: %v", err)
 	}
 
 	writer := mockWriter()
 	gz := NewGzipMiddleware()
 	req := newRequest(mockRequest())
 	res := newResponse(writer)
-
 	req.Header().Add(headerAcceptEncoding, headerAcceptEncodingGzip)
 	gz.Ingress(nil, req, res)
+	gz.Egress(nil, req, res)
 
 	res.Writer.Write(contents)
+	res.Writer.(*gzipWriter).Close()
 
-	compressed := writer.Buffer.Bytes()
-	expected := compress(contents)
-
-	if reflect.DeepEqual(compressed, contents) {
-		t.Fatal("Contents not compressed")
+	results := writer.Buffer.Bytes()
+	if !reflect.DeepEqual(results, expected) {
+		t.Fatal("Unexpected results")
 	}
-	if !reflect.DeepEqual(compressed, expected) {
-		t.Fatal("Unexpected gzipped content")
+
+	decompressed, err := decompress(results)
+	if err != nil {
+		t.Fatalf("Error decompressing results: %v", err)
+	}
+	if !reflect.DeepEqual(contents, decompressed) {
+		t.Fatal("Contents did not decompress to original")
 	}
 
 }

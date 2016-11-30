@@ -121,8 +121,8 @@ func NewGzipMiddleware() Middleware {
 func (m gzipMiddleware) Ingress(ctx interface{}, req *Request, res *Response) {
 	if strings.Contains(req.Header().Get(headerAcceptEncoding), headerAcceptEncodingGzip) {
 		res.Writer = &gzipWriter{
-			response: res.Writer,
-			gz:       gzip.NewWriter(res.Writer),
+			writer: res.Writer,
+			gz:     gzip.NewWriter(res.Writer),
 		}
 		res.AddHeader(headerContentEncoding, headerContentEncodingGzip)
 	}
@@ -132,12 +132,12 @@ func (m gzipMiddleware) Egress(ctx interface{}, req *Request, res *Response) {
 }
 
 type gzipWriter struct {
-	response ResponseWriter
-	gz       *gzip.Writer
+	writer ResponseWriter
+	gz     *gzip.Writer
 }
 
 func (gz *gzipWriter) Header() http.Header {
-	return gz.response.Header()
+	return gz.writer.Header()
 }
 
 func (gz *gzipWriter) Write(data []byte) (int, error) {
@@ -145,7 +145,7 @@ func (gz *gzipWriter) Write(data []byte) (int, error) {
 }
 
 func (gz *gzipWriter) WriteHeader(code int) {
-	gz.response.WriteHeader(code)
+	gz.writer.WriteHeader(code)
 }
 
 func (gz *gzipWriter) Close() {

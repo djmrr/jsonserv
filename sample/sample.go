@@ -66,7 +66,7 @@ func readConfig() *Context {
 		log.Fatal(err)
 	}
 
-	connections,err := opener.New().
+	connections, err := opener.New().
 		WithRetry(connectionRetries, backoff.Exponential(10*time.Millisecond, 1*time.Second, 2)).
 		WithDatabase(&config.DbConfig).
 		WithProducer(&config.ProducerConfig).

@@ -11,13 +11,13 @@ type ResponseWriterCloser struct {
 	http.ResponseWriter
 }
 
-func (r ResponseWriterCloser) Close(){}
+func (r ResponseWriterCloser) Close() {}
 
 type Response struct {
-	Code    int
-	Err     error
-	Body    interface{}
-	Writer  ResponseWriter
+	Code   int
+	Err    error
+	Body   interface{}
+	Writer ResponseWriter
 }
 
 func newWrappedResponse(w http.ResponseWriter) *Response {
