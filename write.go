@@ -7,38 +7,33 @@ import (
 	"net/http"
 )
 
-func respond(w http.ResponseWriter, req *Request, res *Response) {
+func respond(req *Request, res *Response) {
 	var err error
 	if res.Err != nil {
-		err = writeError(w, req, res)
+		err = writeError(req, res)
 	} else {
-		err = writeBody(w, res)
+		err = writeBody(res)
 	}
 	if err != nil {
 		log.Printf("Error rendering %s: %v", req.URL(), err)
 	}
 }
 
-func writeError(w http.ResponseWriter, req *Request, res *Response) error {
+func writeError(req *Request, res *Response) error {
 	body := make(map[string]interface{})
 	if req.GetOptionalMiddlewareVar(DebugFlag, false).(bool) {
 		body["error"] = res.Err.Error()
 	}
-	return write(w, http.StatusInternalServerError, res.headers, body)
+	return write(res.Writer, http.StatusInternalServerError, body)
 }
 
-func writeBody(w http.ResponseWriter, res *Response) error {
-	return write(w, res.Code, res.headers, res.Body)
+func writeBody(res *Response) error {
+	return write(res.Writer, res.Code, res.Body)
 }
 
-func write(w http.ResponseWriter, code int, headers map[string]string, body interface{}) error {
+func write(w http.ResponseWriter, code int, body interface{}) error {
 	w.Header().Add(contentTypeHeader, contentTypeJson)
 	w.WriteHeader(code)
-	if headers != nil {
-		for k, v := range headers {
-			w.Header().Add(k, v)
-		}
-	}
 	if body == nil {
 		return writeEmptyBody(w)
 	} else {

@@ -32,6 +32,10 @@ func (r *Request) URL() *url.URL {
 	return r.raw.URL
 }
 
+func (r *Request) Header() http.Header {
+	return r.raw.Header
+}
+
 func (r *Request) GetMiddlewareVar(key string) interface{} {
 	if r.ctx == nil {
 		return nil

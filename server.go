@@ -15,13 +15,13 @@ const (
 type JsonServer struct {
 	Context     interface{}
 	routes      routes
-	middlewares middlewares
+	Middlewares middlewares
 }
 
 func New() *JsonServer {
 	return &JsonServer{
 		routes:      make(routes, 0, 16),
-		middlewares: make(middlewares, 0, 2),
+		Middlewares: make(middlewares, 0, 2),
 	}
 }
 
@@ -31,7 +31,7 @@ func (s *JsonServer) AddRoute(method, name, path string, view View) *JsonServer 
 }
 
 func (s *JsonServer) AddMiddleware(middleware Middleware) *JsonServer {
-	s.middlewares = append(s.middlewares, middleware)
+	s.Middlewares = append(s.Middlewares, middleware)
 	return s
 }
 
@@ -67,12 +67,15 @@ func (s *JsonServer) newNotFoundHandler() http.Handler {
 func (s *JsonServer) newHandler(name string, view View) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		req := newRequest(r)
-		res := newResponse()
+		res := newWrappedResponse(w)
+		defer func() {
+			res.Writer.Close()
+		}()
 
-		s.middlewares.Ingress(s.Context, req, res)
+		s.Middlewares.Ingress(s.Context, req, res)
 		view(s.Context, req, res)
-		s.middlewares.Egress(s.Context, req, res)
+		s.Middlewares.Egress(s.Context, req, res)
 
-		respond(w, req, res)
+		respond(req, res)
 	})
 }

@@ -2,16 +2,32 @@ package jsonserv
 
 import "net/http"
 
+type ResponseWriter interface {
+	http.ResponseWriter
+	Close()
+}
+
+type ResponseWriterCloser struct {
+	http.ResponseWriter
+}
+
+func (r ResponseWriterCloser) Close(){}
+
 type Response struct {
 	Code    int
 	Err     error
 	Body    interface{}
-	headers map[string]string
+	Writer  ResponseWriter
 }
 
-func newResponse() *Response {
+func newWrappedResponse(w http.ResponseWriter) *Response {
+	return newResponse(ResponseWriterCloser{w})
+}
+
+func newResponse(w ResponseWriter) *Response {
 	return &Response{
-		Code: http.StatusOK,
+		Code:   http.StatusOK,
+		Writer: w,
 	}
 }
 
@@ -37,9 +53,6 @@ func (r *Response) Error(err error) *Response {
 }
 
 func (r *Response) AddHeader(key, value string) *Response {
-	if r.headers == nil {
-		r.headers = make(map[string]string)
-	}
-	r.headers[key] = value
+	r.Writer.Header().Add(key, value)
 	return r
 }

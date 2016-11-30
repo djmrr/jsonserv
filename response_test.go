@@ -7,7 +7,7 @@ import (
 )
 
 func TestResponse_Done(t *testing.T) {
-	res := newResponse()
+	res := newResponse(mockWriter())
 	res.Done(5000, "abc")
 	if res.Err != nil {
 		t.Fatal("error set")
@@ -21,7 +21,7 @@ func TestResponse_Done(t *testing.T) {
 }
 
 func TestResponse_Empty(t *testing.T) {
-	res := newResponse()
+	res := newResponse(mockWriter())
 	res.Body = "abc"
 	res.Empty(5000)
 	if res.Err != nil {
@@ -36,7 +36,7 @@ func TestResponse_Empty(t *testing.T) {
 }
 
 func TestResponse_Ok(t *testing.T) {
-	res := newResponse()
+	res := newResponse(mockWriter())
 	res.Ok("abc")
 	if res.Err != nil {
 		t.Fatal("error set")
@@ -50,7 +50,7 @@ func TestResponse_Ok(t *testing.T) {
 }
 
 func TestResponse_Err(t *testing.T) {
-	res := newResponse()
+	res := newResponse(mockWriter())
 	res.Error(errors.New("fail"))
 	if res.Err == nil {
 		t.Fatal("error not set")
@@ -64,9 +64,9 @@ func TestResponse_Err(t *testing.T) {
 }
 
 func TestResponse_AddHeader(t *testing.T) {
-	res := newResponse()
+	res := newResponse(mockWriter())
 	res.AddHeader("content-type", "text/plain")
-	if res.headers["content-type"] != "text/plain" {
+	if res.Writer.Header().Get("content-type") != "text/plain" {
 		t.Fatal("Header not set")
 	}
 }
