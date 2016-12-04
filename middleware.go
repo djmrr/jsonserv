@@ -21,23 +21,23 @@ const (
 // instance of middleware
 
 type Middleware interface {
-	Ingress(ctx interface{}, req *Request, res *Response)
-	Egress(ctx interface{}, req *Request, res *Response)
+	Ingress(app interface{}, req *Request, res *Response)
+	Egress(app interface{}, req *Request, res *Response)
 }
 
 // collection of middleware
 
 type middlewares []Middleware
 
-func (m middlewares) Ingress(ctx interface{}, req *Request, res *Response) {
+func (m middlewares) Ingress(app interface{}, req *Request, res *Response) {
 	for _, middleware := range m {
-		middleware.Ingress(ctx, req, res)
+		middleware.Ingress(app, req, res)
 	}
 }
 
-func (m middlewares) Egress(ctx interface{}, req *Request, res *Response) {
+func (m middlewares) Egress(app interface{}, req *Request, res *Response) {
 	for i := len(m) - 1; i >= 0; i-- {
-		m[i].Egress(ctx, req, res)
+		m[i].Egress(app, req, res)
 	}
 }
 
@@ -55,11 +55,11 @@ func NewStaticValueMiddleware(key string, value interface{}) Middleware {
 	}
 }
 
-func (m staticValueMiddleware) Ingress(ctx interface{}, req *Request, res *Response) {
+func (m staticValueMiddleware) Ingress(app interface{}, req *Request, res *Response) {
 	req.SetMiddlewareVar(m.key, m.value)
 }
 
-func (m staticValueMiddleware) Egress(ctx interface{}, req *Request, res *Response) {
+func (m staticValueMiddleware) Egress(app interface{}, req *Request, res *Response) {
 }
 
 // debug flag middleware
@@ -91,14 +91,14 @@ func NewLoggingMiddleware(logIngress bool) Middleware {
 	}
 }
 
-func (m loggingMiddleware) Ingress(ctx interface{}, req *Request, res *Response) {
+func (m loggingMiddleware) Ingress(app interface{}, req *Request, res *Response) {
 	req.SetMiddlewareVar(StartTime, time.Now())
 	if m.logIngress {
 		log.Printf("← %s %s", req.Method(), req.URL())
 	}
 }
 
-func (m loggingMiddleware) Egress(ctx interface{}, req *Request, res *Response) {
+func (m loggingMiddleware) Egress(app interface{}, req *Request, res *Response) {
 	start := req.GetMiddlewareVar(StartTime).(time.Time)
 	if res.Err != nil {
 		log.Printf("→ ERROR %s %d %s (%s): %v", req.Method(), res.Code, req.URL(), time.Now().Sub(start), res.Err)
@@ -118,7 +118,7 @@ func NewGzipMiddleware() Middleware {
 	return &gzipMiddleware{}
 }
 
-func (m gzipMiddleware) Ingress(ctx interface{}, req *Request, res *Response) {
+func (m gzipMiddleware) Ingress(app interface{}, req *Request, res *Response) {
 	if strings.Contains(req.Header().Get(headerAcceptEncoding), headerAcceptEncodingGzip) {
 		res.Writer = &gzipWriter{
 			writer: res.Writer,
@@ -128,7 +128,7 @@ func (m gzipMiddleware) Ingress(ctx interface{}, req *Request, res *Response) {
 	}
 }
 
-func (m gzipMiddleware) Egress(ctx interface{}, req *Request, res *Response) {
+func (m gzipMiddleware) Egress(app interface{}, req *Request, res *Response) {
 }
 
 type gzipWriter struct {

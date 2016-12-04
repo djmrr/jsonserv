@@ -13,7 +13,7 @@ const (
 )
 
 type JsonServer struct {
-	Context     interface{}
+	App         interface{}
 	routes      routes
 	Middlewares middlewares
 }
@@ -35,8 +35,8 @@ func (s *JsonServer) AddMiddleware(middleware Middleware) *JsonServer {
 	return s
 }
 
-func (s *JsonServer) SetContext(ctx interface{}) *JsonServer {
-	s.Context = ctx
+func (s *JsonServer) SetApp(app interface{}) *JsonServer {
+	s.App = app
 	return s
 }
 
@@ -59,7 +59,7 @@ func (s *JsonServer) createRouter() *mux.Router {
 }
 
 func (s *JsonServer) newNotFoundHandler() http.Handler {
-	return s.newHandler("NotFound", func(ctx interface{}, r *Request, out *Response) {
+	return s.newHandler("NotFound", func(app interface{}, r *Request, out *Response) {
 		out.Empty(http.StatusNotFound)
 	})
 }
@@ -72,9 +72,9 @@ func (s *JsonServer) newHandler(name string, view View) http.Handler {
 			res.Writer.Close()
 		}()
 
-		s.Middlewares.Ingress(s.Context, req, res)
-		view(s.Context, req, res)
-		s.Middlewares.Egress(s.Context, req, res)
+		s.Middlewares.Ingress(s.App, req, res)
+		view(s.App, req, res)
+		s.Middlewares.Egress(s.App, req, res)
 
 		respond(req, res)
 	})

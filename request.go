@@ -13,8 +13,8 @@ import (
 )
 
 type Request struct {
-	raw *http.Request
-	ctx map[string]interface{}
+	raw  *http.Request
+	vars map[string]interface{}
 }
 
 func newRequest(r *http.Request) *Request {
@@ -37,17 +37,17 @@ func (r *Request) Header() http.Header {
 }
 
 func (r *Request) GetMiddlewareVar(key string) interface{} {
-	if r.ctx == nil {
+	if r.vars == nil {
 		return nil
 	}
-	return r.ctx[key]
+	return r.vars[key]
 }
 
 func (r *Request) GetOptionalMiddlewareVar(key string, fallback interface{}) interface{} {
-	if r.ctx == nil {
+	if r.vars == nil {
 		return fallback
 	}
-	val, ok := r.ctx[key]
+	val, ok := r.vars[key]
 	if !ok {
 		return fallback
 	}
@@ -55,10 +55,10 @@ func (r *Request) GetOptionalMiddlewareVar(key string, fallback interface{}) int
 }
 
 func (r *Request) SetMiddlewareVar(key string, value interface{}) {
-	if r.ctx == nil {
-		r.ctx = make(map[string]interface{})
+	if r.vars == nil {
+		r.vars = make(map[string]interface{})
 	}
-	r.ctx[key] = value
+	r.vars[key] = value
 }
 
 func (r Request) String() string {

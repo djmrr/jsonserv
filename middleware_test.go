@@ -15,10 +15,10 @@ type countingmiddleware struct {
 	ingress, egress int
 }
 
-func (m *countingmiddleware) Ingress(ctx interface{}, req *Request, res *Response) {
+func (m *countingmiddleware) Ingress(app interface{}, req *Request, res *Response) {
 	m.ingress++
 }
-func (m *countingmiddleware) Egress(ctx interface{}, req *Request, res *Response) {
+func (m *countingmiddleware) Egress(app interface{}, req *Request, res *Response) {
 	m.egress++
 }
 
