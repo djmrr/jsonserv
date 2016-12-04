@@ -12,8 +12,10 @@ import (
 	"log"
 	"net/http"
 	"errors"
+	"database/sql"
 
 	"github.com/explodes/jsonserv"
+	"github.com/explodes/ezconfig/producer"
 )
 
 const (
