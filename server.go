@@ -4,18 +4,22 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"net"
+	"time"
+	"errors"
 )
 
 const (
 	contentTypeHeader = "Content-type"
-	contentTypeJson   = "application/json"
-	emptyBody         = "{}"
+	contentTypeJson = "application/json"
+	emptyBody = "{}"
 )
 
 type JsonServer struct {
 	App         interface{}
 	routes      routes
 	Middlewares middlewares
+	Listener    *net.TCPListener
 }
 
 func New() *JsonServer {
@@ -40,9 +44,24 @@ func (s *JsonServer) SetApp(app interface{}) *JsonServer {
 	return s
 }
 
-func (s *JsonServer) Serve(bind string) error {
+func (s *JsonServer) Serve(addr string) error {
 	router := s.createRouter()
-	return http.ListenAndServe(bind, router)
+	server := &http.Server{Addr: addr, Handler: router}
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	s.Listener = ln.(*net.TCPListener)
+	return server.Serve(tcpKeepAliveListener{s.Listener})
+}
+
+func (s *JsonServer) Close() error {
+	if s.Listener == nil {
+		return errors.New("Server not listening")
+	}
+	old := s.Listener
+	s.Listener = nil
+	return old.Close()
 }
 
 func (s *JsonServer) createRouter() *mux.Router {
@@ -78,4 +97,22 @@ func (s *JsonServer) newHandler(name string, view View) http.Handler {
 
 		respond(req, res)
 	})
+}
+
+// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
+// connections. It's used by ListenAndServe and ListenAndServeTLS so
+// dead TCP connections (e.g. closing laptop mid-download) eventually
+// go away.
+type tcpKeepAliveListener struct {
+	*net.TCPListener
+}
+
+func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
+	tc, err := ln.AcceptTCP()
+	if err != nil {
+		return
+	}
+	tc.SetKeepAlive(true)
+	tc.SetKeepAlivePeriod(3 * time.Minute)
+	return tc, nil
 }

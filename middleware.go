@@ -41,8 +41,7 @@ func (m middlewares) Egress(app interface{}, req *Request, res *Response) {
 	}
 }
 
-// static value middleware
-
+// staticValueMiddleware is middleware that injects a set value into the context
 type staticValueMiddleware struct {
 	key   string
 	value interface{}
@@ -62,23 +61,18 @@ func (m staticValueMiddleware) Ingress(app interface{}, req *Request, res *Respo
 func (m staticValueMiddleware) Egress(app interface{}, req *Request, res *Response) {
 }
 
-// debug flag middleware
-
 // NewDebugFlagMiddleware creates a middleware that sets a debug flag
 // Debug mode will enable error messages in 500 responses
 func NewDebugFlagMiddleware(debug bool) Middleware {
 	return NewStaticValueMiddleware(DebugFlag, debug)
 }
 
-// max request size middleware
-
 // NewMaxRequestSizeMiddleware creates a middleware that sets the maximum size read of incoming reqs
 func NewMaxRequestSizeMiddleware(maxRequestSize int64) Middleware {
 	return NewStaticValueMiddleware(MaxBodySize, maxRequestSize)
 }
 
-// logging middleware
-
+// loggingMiddleware logs requests (optionally) and logs responses
 type loggingMiddleware struct {
 	logIngress bool
 }
