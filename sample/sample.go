@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	defaultConfig     = "local.conf"
+	defaultConfig = "local.conf"
 	connectionRetries = 15
 )
 
@@ -67,7 +67,7 @@ func readConfig() *App {
 	}
 
 	connections, err := opener.New().
-		WithRetry(connectionRetries, backoff.Exponential(10*time.Millisecond, 1*time.Second, 2)).
+		WithRetry(connectionRetries, backoff.Exponential(10 * time.Millisecond, 1 * time.Second, 2)).
 		WithDatabase(&config.DbConfig).
 		WithProducer(&config.ProducerConfig).
 		Connect()
@@ -90,20 +90,34 @@ func main() {
 	bind := fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port)
 	log.Printf("Serving on %s", bind)
 
-	server := jsonserv.New()
-	if config.Server.LogRequests > 0 {
-		server.AddMiddleware(jsonserv.NewLoggingMiddleware(config.Server.LogRequests > 1))
-	}
-	err := server.SetApp(app).
+	server := jsonserv.New().
+		SetApp(app).
 		AddMiddleware(jsonserv.NewMaxRequestSizeMiddleware(config.Server.MaxRequestSize)).
 		AddMiddleware(jsonserv.NewDebugFlagMiddleware(config.Server.Debug)).
 		AddMiddleware(jsonserv.NewGzipMiddleware()).
 		AddRoute(http.MethodGet, "Index", "/", appWrap(indexView)).
-		AddRoute(http.MethodGet, "Error", "/error", appWrap(errorView)).
-		Serve(bind)
+		AddRoute(http.MethodGet, "Error", "/error", appWrap(errorView))
+
+	// Logging middleware will log responses, but you can optionally log requests
+	// optionally log requests
+	if config.Server.LogRequests > 0 {
+		server.AddMiddleware(jsonserv.NewLoggingMiddleware(config.Server.LogRequests > 1))
+	}
+
+	// serve in a goroutine
+	go func() {
+		if err := server.Serve(bind); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// close after 1 hour to demonstrate Close
+	<-time.After(1 * time.Hour)
+	err := server.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
+
 }
 
 func indexView(app *App, req *jsonserv.Request, res *jsonserv.Response) {
