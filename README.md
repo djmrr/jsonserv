@@ -1,4 +1,4 @@
-*This project is mostly just an exercise, but it works really well.*
+*This project is mostly just an exercise, but it works REALLY well.*
 
 # JSONServ
 An easy way to spin up a JSON service
